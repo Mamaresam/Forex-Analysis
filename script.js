@@ -1,7 +1,6 @@
 // ====================== CONFIG ======================
 const API_KEY = "53c0391297564e8b91d9bb170a0d002e";
 
-// Only Gold is fetched live. Others are static placeholders for now.
 const PAIRS = [
     { symbol: "XAU/USD", name: "XAU/USD", live: true },
     { symbol: "EUR/USD", name: "EUR/USD", live: false, close: 1.0854, change: 0.0012, percent_change: 0.11, high: 1.0871, low: 1.0832 },
@@ -51,6 +50,8 @@ function toggleTheme() {
         document.getElementById("themeBtn").textContent = "☾";
         localStorage.setItem("fx-theme", "dark");
     }
+    // Recreate chart with new theme
+    createWidget(currentSymbol, currentInterval);
 }
 
 // ====================== TRADINGVIEW ======================
@@ -59,21 +60,23 @@ function createWidget(symbol, interval) {
     if (!container) return;
     container.innerHTML = "";
 
+    const isLight = document.body.classList.contains("light");
+
     widget = new TradingView.widget({
         width: "100%",
         height: 400,
         symbol: symbol,
         interval: interval,
         timezone: "Etc/UTC",
-        theme: document.body.classList.contains("light") ? "light" : "dark",
+        theme: isLight ? "light" : "dark",
         style: "1",
         locale: "en",
-        toolbar_bg: document.body.classList.contains("light") ? "#f1f5f9" : "#0d1321",
+        toolbar_bg: isLight ? "#f1f5f9" : "#0d1321",
         enable_publishing: false,
         hide_top_toolbar: false,
         save_image: false,
         container_id: "tradingview_chart",
-        backgroundColor: document.body.classList.contains("light") ? "#f1f5f9" : "#0d1321",
+        backgroundColor: isLight ? "#f1f5f9" : "#0d1321",
         gridColor: "rgba(128,128,128,0.1)",
         allow_symbol_change: true
     });
@@ -111,7 +114,6 @@ async function fetchGold() {
         const url = "https://api.twelvedata.com/quote?symbol=XAU/USD&apikey=" + API_KEY;
         const res = await fetch(url);
         const data = await res.json();
-
         if (data.status === "error" || !data.close) return null;
 
         return {
@@ -137,10 +139,8 @@ async function updatePrices() {
     const gold = await fetchGold();
     const list = [];
 
-    // Put live gold first if available
     if (gold) list.push(gold);
 
-    // Add the rest (static for now)
     for (let i = 0; i < PAIRS.length; i++) {
         const p = PAIRS[i];
         if (p.symbol === "XAU/USD") continue;
@@ -164,7 +164,60 @@ async function updatePrices() {
     isUpdating = false;
 }
 
-// ====================== STACK + ANIMATION ======================
+// ====================== DISINTEGRATION EFFECT ======================
+function disintegrateCard(card, direction, callback) {
+    const rect = card.getBoundingClientRect();
+    const wrapper = document.getElementById("stackWrapper");
+    const particleCount = 55;
+    const particles = [];
+
+    // Hide original card immediately
+    card.style.opacity = "0";
+    card.style.pointerEvents = "none";
+
+    for (let i = 0; i < particleCount; i++) {
+        const p = document.createElement("div");
+        p.className = "particle";
+
+        const size = 4 + Math.random() * 7;
+        const startX = Math.random() * rect.width;
+        const startY = Math.random() * rect.height;
+
+        p.style.width = size + "px";
+        p.style.height = size + "px";
+        p.style.left = (rect.left - wrapper.getBoundingClientRect().left + startX) + "px";
+        p.style.top = (rect.top - wrapper.getBoundingClientRect().top + startY) + "px";
+        p.style.background = Math.random() > 0.4 ? "var(--accent)" : (Math.random() > 0.5 ? "var(--up)" : "var(--down)");
+        p.style.opacity = "0.9";
+
+        wrapper.appendChild(p);
+        particles.push(p);
+
+        // Random velocity
+        const angle = direction === "left" ? (Math.PI + (Math.random() - 0.5) * 1.1) : ((Math.random() - 0.5) * 1.1);
+        const speed = 80 + Math.random() * 160;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed * 0.7 - 30;
+        const rot = (Math.random() - 0.5) * 720;
+
+        // Animate with CSS transition
+        requestAnimationFrame(function () {
+            p.style.transition = "transform 0.7s cubic-bezier(0.15, 0.7, 0.3, 1), opacity 0.7s ease";
+            p.style.transform = "translate(" + vx + "px, " + vy + "px) rotate(" + rot + "deg) scale(0.2)";
+            p.style.opacity = "0";
+        });
+    }
+
+    // Cleanup
+    setTimeout(function () {
+        for (let i = 0; i < particles.length; i++) {
+            if (particles[i].parentNode) particles[i].parentNode.removeChild(particles[i]);
+        }
+        if (callback) callback();
+    }, 720);
+}
+
+// ====================== STACK LOGIC ======================
 function renderStack() {
     const wrapper = document.getElementById("stackWrapper");
     const dotsContainer = document.getElementById("stackDots");
@@ -189,15 +242,16 @@ function renderStack() {
             if (isAnimating) return;
             const newIndex = parseInt(this.getAttribute("data-index"));
             if (newIndex === currentStackIndex) return;
-            goToIndex(newIndex);
+            const dir = newIndex > currentStackIndex ? "left" : "right";
+            goToIndex(newIndex, dir);
         });
     }
 
-    updateStackPositions(false);
+    updateStackPositions();
     initSwipe();
 }
 
-function updateStackPositions(withEnterAnimation) {
+function updateStackPositions() {
     const cards = document.querySelectorAll(".stack-card");
     const total = cards.length;
 
@@ -205,32 +259,32 @@ function updateStackPositions(withEnterAnimation) {
         const card = cards[i];
         const offset = (i - currentStackIndex + total) % total;
 
-        card.classList.remove("exit-left", "exit-right", "enter");
+        card.style.transition = "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease";
 
         if (offset === 0) {
             card.style.transform = "translateY(0) scale(1)";
             card.style.opacity = "1";
-            card.style.filter = "blur(0)";
             card.style.zIndex = "10";
-            if (withEnterAnimation) card.classList.add("enter");
+            card.style.pointerEvents = "auto";
         } else if (offset === 1) {
             card.style.transform = "translateY(16px) scale(0.95)";
-            card.style.opacity = "0.65";
-            card.style.filter = "blur(0)";
+            card.style.opacity = "0.6";
             card.style.zIndex = "5";
+            card.style.pointerEvents = "none";
         } else if (offset === 2) {
             card.style.transform = "translateY(30px) scale(0.90)";
-            card.style.opacity = "0.35";
-            card.style.filter = "blur(0)";
+            card.style.opacity = "0.3";
             card.style.zIndex = "3";
+            card.style.pointerEvents = "none";
         } else {
             card.style.transform = "translateY(40px) scale(0.85)";
             card.style.opacity = "0";
             card.style.zIndex = "1";
+            card.style.pointerEvents = "none";
         }
     }
 
-    // Update dots
+    // Dots
     const dots = document.querySelectorAll(".dot");
     for (let i = 0; i < dots.length; i++) {
         dots[i].classList.toggle("active", i === currentStackIndex);
@@ -244,21 +298,12 @@ function goToIndex(newIndex, direction) {
     const cards = document.querySelectorAll(".stack-card");
     const currentCard = cards[currentStackIndex];
 
-    // Exit animation
-    if (direction === "left") {
-        currentCard.classList.add("exit-left");
-    } else if (direction === "right") {
-        currentCard.classList.add("exit-right");
-    } else {
-        // fallback
-        currentCard.classList.add(newIndex > currentStackIndex ? "exit-left" : "exit-right");
-    }
-
-    setTimeout(function () {
+    // Disintegrate current card
+    disintegrateCard(currentCard, direction, function () {
         currentStackIndex = newIndex;
-        updateStackPositions(true);
+        updateStackPositions();
         isAnimating = false;
-    }, 380);
+    });
 }
 
 function initSwipe() {
@@ -292,14 +337,12 @@ function onEnd() {
     isDragging = false;
 
     const diff = currentX - startX;
-    const threshold = 55;
+    const threshold = 50;
 
     if (diff < -threshold) {
-        // swipe left → next
         const next = (currentStackIndex + 1) % priceData.length;
         goToIndex(next, "left");
     } else if (diff > threshold) {
-        // swipe right → prev
         const prev = (currentStackIndex - 1 + priceData.length) % priceData.length;
         goToIndex(prev, "right");
     }
@@ -311,13 +354,10 @@ document.addEventListener("DOMContentLoaded", function () {
     createWidget(currentSymbol, currentInterval);
     updatePrices();
 
-    // Refresh gold every 60s
     setInterval(updatePrices, 60000);
 
-    // Theme button
     document.getElementById("themeBtn").addEventListener("click", toggleTheme);
 
-    // Timeframes
     const tfs = document.querySelectorAll(".tf");
     for (let i = 0; i < tfs.length; i++) {
         tfs[i].addEventListener("click", function () {
@@ -328,7 +368,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Pair selector (chart only)
     const pairSelect = document.getElementById("pairSelect");
     if (pairSelect) {
         pairSelect.addEventListener("change", function (e) {
@@ -344,7 +383,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Refresh
     const refreshBtn = document.getElementById("refreshBtn");
     if (refreshBtn) {
         refreshBtn.addEventListener("click", function () {
@@ -358,5 +396,5 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    console.log("FX Dashboard - Stack + Theme ready");
+    console.log("FX Dashboard - Disintegration ready");
 });
