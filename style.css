@@ -1,7 +1,6 @@
 :root {
     --bg-primary: #070b14;
-    --bg-secondary: #0d1321;
-    --bg-card: rgba(16, 24, 40, 0.75);
+    --bg-card: rgba(16, 24, 40, 0.78);
     --border: rgba(255, 255, 255, 0.07);
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
@@ -10,6 +9,18 @@
     --up: #10b981;
     --down: #f43f5e;
     --radius: 20px;
+    --shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.light {
+    --bg-primary: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --border: rgba(0, 0, 0, 0.08);
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent: #0891b2;
+    --accent-dim: rgba(8, 145, 178, 0.12);
+    --shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -24,6 +35,7 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background 0.35s ease, color 0.35s ease;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -32,68 +44,68 @@ body {
 }
 
 .main {
-    max-width: 1200px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 20px 16px 40px;
+    padding: 20px 16px 50px;
 }
 
-/* ========== Top Bar ========== */
+/* Top Bar */
 .top-bar {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 28px;
+    gap: 10px;
+    margin-bottom: 30px;
 }
 
-.pair-selector select {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 10px 16px;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    outline: none;
-    min-width: 130px;
-}
-
-.pair-selector select:focus {
-    border-color: var(--accent);
-}
-
-.btn-icon {
+.theme-btn, .btn-icon {
     width: 42px;
     height: 42px;
     border-radius: 12px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-primary);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-icon:hover {
+.theme-btn:hover, .btn-icon:hover {
     background: var(--accent-dim);
     border-color: var(--accent);
     color: var(--accent);
 }
 
-/* ========== Stacked Cards ========== */
+.pair-selector select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    min-width: 120px;
+}
+
+/* Stack Section */
 .stack-section {
-    margin-bottom: 36px;
+    margin-bottom: 40px;
     position: relative;
 }
 
 .stack-wrapper {
     position: relative;
-    height: 210px;
-    max-width: 380px;
+    height: 220px;
+    max-width: 360px;
     margin: 0 auto;
     touch-action: pan-y;
     user-select: none;
+    perspective: 1000px;
 }
 
 .stack-card {
@@ -101,17 +113,18 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 190px;
+    height: 200px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 26px 24px;
     backdrop-filter: blur(16px);
-    transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
-                opacity 0.35s ease,
-                box-shadow 0.35s ease;
+    box-shadow: var(--shadow);
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.45s ease,
+                filter 0.45s ease;
     cursor: grab;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    will-change: transform, opacity, filter;
 }
 
 .stack-card:active {
@@ -122,20 +135,20 @@ body {
     font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-secondary);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .stack-card .price {
-    font-size: 2.4rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    letter-spacing: -1px;
+    letter-spacing: -1.5px;
     margin-bottom: 6px;
 }
 
 .stack-card .price-change {
     font-size: 1.05rem;
     font-weight: 500;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .stack-card .card-footer {
@@ -155,45 +168,66 @@ body {
     float: right;
 }
 
-.badge.up {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--up);
-}
-
-.badge.down {
-    background: rgba(244, 63, 94, 0.15);
-    color: var(--down);
-}
-
+.badge.up { background: rgba(16, 185, 129, 0.15); color: var(--up); }
+.badge.down { background: rgba(244, 63, 94, 0.15); color: var(--down); }
 .up { color: var(--up); }
 .down { color: var(--down); }
+
+/* Exit / Enter animations */
+.stack-card.exit-left {
+    transform: translateX(-120%) scale(0.9) !important;
+    opacity: 0 !important;
+    filter: blur(8px);
+}
+
+.stack-card.exit-right {
+    transform: translateX(120%) scale(0.9) !important;
+    opacity: 0 !important;
+    filter: blur(8px);
+}
+
+.stack-card.enter {
+    animation: cardBorn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes cardBorn {
+    0% {
+        opacity: 0;
+        filter: blur(12px);
+        transform: scale(0.85) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1) translateY(0);
+    }
+}
 
 /* Dots */
 .stack-dots {
     display: flex;
     justify-content: center;
     gap: 8px;
-    margin-top: 18px;
+    margin-top: 20px;
 }
 
 .dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transition: all 0.25s ease;
+    background: rgba(128, 128, 128, 0.35);
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .dot.active {
     background: var(--accent);
-    transform: scale(1.25);
+    transform: scale(1.3);
 }
 
-/* ========== Chart Section ========== */
-.content-grid {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 20px;
+/* Chart */
+.chart-section {
+    margin-top: 10px;
 }
 
 .card {
@@ -239,8 +273,7 @@ body {
     transition: all 0.2s;
 }
 
-.tf:hover,
-.tf.active {
+.tf:hover, .tf.active {
     background: var(--accent-dim);
     border-color: var(--accent);
     color: var(--accent);
@@ -254,62 +287,20 @@ body {
     background: #0d1321;
 }
 
+body.light .chart-container {
+    background: #e2e8f0;
+}
+
 #tradingview_chart {
     width: 100%;
     height: 100%;
     min-height: 400px;
 }
 
-.side-panels {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.info-card h4 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-secondary);
-}
-
-.info-row,
-.hot-pair {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.9rem;
-}
-
-.info-row:last-child,
-.hot-pair:last-child {
-    border-bottom: none;
-}
-
-/* ========== Responsive ========== */
-@media (max-width: 900px) {
-    .content-grid {
-        grid-template-columns: 1fr;
-    }
-    .stack-wrapper {
-        max-width: 340px;
-    }
-}
-
+/* Responsive */
 @media (max-width: 480px) {
-    .main {
-        padding: 16px 12px 30px;
-    }
-    .stack-wrapper {
-        height: 200px;
-    }
-    .stack-card {
-        height: 180px;
-        padding: 20px;
-    }
-    .stack-card .price {
-        font-size: 2.1rem;
-    }
+    .main { padding: 16px 12px 40px; }
+    .stack-wrapper { height: 210px; }
+    .stack-card { height: 190px; padding: 22px 20px; }
+    .stack-card .price { font-size: 2.2rem; }
 }
