@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Pair selector (فعلاً فقط لاگ می‌کند)
+    // Pair selector
     const pairSelect = document.getElementById('pairSelect');
     if (pairSelect) {
         pairSelect.addEventListener('change', (e) => {
-            console.log('جفت ارز انتخاب شده:', e.target.value);
-            // در مراحل بعدی اینجا قیمت و چارت آپدیت می‌شود
+            console.log('Selected pair:', e.target.value);
+            // In next steps we will update prices and chart here
         });
     }
 
