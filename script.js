@@ -77,14 +77,12 @@ async function fetchPair(symbol) {
         const res = await fetch(url);
         const data = await res.json();
 
-        // Rate limit or error
-        if (data.code === 429 || (data.status === "error" && data.message && data.message.toLowerCase().includes("limit"))) {
-            console.warn("Rate limit hit");
+        if (data.code === 429 || (data.message && data.message.toLowerCase().includes("limit"))) {
             return { error: "rate_limit" };
         }
 
         if (data.status === "error" || !data.close) {
-            console.warn("API Error for", symbol, data.message || data);
+            console.warn("API Error:", symbol, data);
             return null;
         }
 
@@ -131,21 +129,21 @@ async function updatePriceCards() {
             results.push(data);
         }
 
-        // Longer delay to stay under free limit (8 credits/min)
-        await new Promise(r => setTimeout(r, 900));
+        // Delay to stay under free limit
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     if (rateLimited) {
         container.innerHTML = `
             <div style="grid-column: 1 / -1; text-align:center; color:#f59e0b; padding:40px;">
-                Rate limit reached (Free plan: 8 requests/min).<br>
-                Please wait 1 minute and click Refresh.
+                Rate limit reached (Free plan limit).<br>
+                Wait 1 minute then click the Refresh button.
             </div>`;
     } else if (results.length === 0) {
         container.innerHTML = `
             <div style="grid-column: 1 / -1; text-align:center; color:#f43f5e; padding:40px;">
                 Failed to load prices.<br>
-                Check console for details.
+                Open browser console (F12) for details.
             </div>`;
     } else {
         container.innerHTML = results.map(createCardHTML).join("");
@@ -159,8 +157,8 @@ document.addEventListener("DOMContentLoaded", () => {
     createWidget(currentSymbol, currentInterval);
     updatePriceCards();
 
-    // Auto refresh every 70 seconds (safer for free plan)
-    setInterval(updatePriceCards, 70000);
+    // Auto refresh every 75 seconds
+    setInterval(updatePriceCards, 75000);
 
     // Timeframe buttons
     document.querySelectorAll(".tf").forEach(btn => {
