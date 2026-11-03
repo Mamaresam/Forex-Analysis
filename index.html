@@ -138,18 +138,14 @@
                     <div class="card-header">
                         <h3>Live Chart</h3>
                         <div class="timeframes">
-                            <button class="tf active">1H</button>
-                            <button class="tf">4H</button>
-                            <button class="tf">1D</button>
-                            <button class="tf">1W</button>
+                            <button class="tf active" data-interval="60">1H</button>
+                            <button class="tf" data-interval="240">4H</button>
+                            <button class="tf" data-interval="D">1D</button>
+                            <button class="tf" data-interval="W">1W</button>
                         </div>
                     </div>
-                    <div class="chart-placeholder">
-                        <div class="chart-message">
-                            <span>📈</span>
-                            <p>Chart Area</p>
-                            <small>Will be added in the next step</small>
-                        </div>
+                    <div class="chart-container">
+                        <div id="tradingview_chart"></div>
                     </div>
                 </div>
 
@@ -190,6 +186,7 @@
         </main>
     </div>
 
+    <script src="https://s3.tradingview.com/tv.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
