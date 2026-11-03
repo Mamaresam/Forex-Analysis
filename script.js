@@ -13,6 +13,13 @@ let currentSymbol = "FX:EURUSD";
 let currentInterval = "60";
 let widget = null;
 let isUpdating = false;
+let currentStackIndex = 0;
+let priceData = [];
+
+// Swipe variables
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
 
 // ====================== TRADINGVIEW ======================
 function createWidget(symbol, interval) {
@@ -22,7 +29,7 @@ function createWidget(symbol, interval) {
 
     widget = new TradingView.widget({
         width: "100%",
-        height: 420,
+        height: 400,
         symbol: symbol,
         interval: interval,
         timezone: "Etc/UTC",
@@ -40,7 +47,7 @@ function createWidget(symbol, interval) {
     });
 }
 
-// ====================== HELPERS ======================
+// ====================== PRICE HELPERS ======================
 function formatPrice(value, symbol) {
     if (value === null || value === undefined || isNaN(value)) return "-";
     if (symbol.indexOf("XAU") !== -1) return Number(value).toFixed(2);
@@ -48,18 +55,16 @@ function formatPrice(value, symbol) {
     return Number(value).toFixed(5);
 }
 
-function createCardHTML(data) {
+function createStackCardHTML(data, index) {
     const isUp = data.percent_change >= 0;
     const changeClass = isUp ? "up" : "down";
     const sign = isUp ? "+" : "";
     const percent = Number(data.percent_change).toFixed(2);
 
     return '' +
-        '<div class="card price-card">' +
-            '<div class="card-header">' +
-                '<span class="pair-name">' + data.name + '</span>' +
-                '<span class="badge ' + changeClass + '">' + sign + percent + '%</span>' +
-            '</div>' +
+        '<div class="stack-card" data-index="' + index + '">' +
+            '<span class="badge ' + changeClass + '">' + sign + percent + '%</span>' +
+            '<div class="pair-name">' + data.name + '</div>' +
             '<div class="price">' + formatPrice(data.close, data.symbol) + '</div>' +
             '<div class="price-change ' + changeClass + '">' + sign + formatPrice(data.change, data.symbol) + '</div>' +
             '<div class="card-footer">' +
@@ -99,17 +104,9 @@ async function fetchPair(symbol) {
     }
 }
 
-async function updatePriceCards() {
+async function updatePrices() {
     if (isUpdating) return;
     isUpdating = true;
-
-    const container = document.getElementById("priceCards");
-    if (!container) {
-        isUpdating = false;
-        return;
-    }
-
-    container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:40px;">Loading live prices...</div>';
 
     const results = [];
     let rateLimited = false;
@@ -128,33 +125,144 @@ async function updatePriceCards() {
             results.push(data);
         }
 
-        // Wait 1.1 second between requests
         await new Promise(function(resolve) {
             setTimeout(resolve, 1100);
         });
     }
 
-    if (rateLimited) {
-        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#f59e0b; padding:40px;">Rate limit reached.<br>Wait 1 minute then click Refresh.</div>';
-    } else if (results.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#f43f5e; padding:40px;">Failed to load prices.<br>Open Console (F12) for details.</div>';
-    } else {
-        let html = "";
-        for (let i = 0; i < results.length; i++) {
-            html += createCardHTML(results[i]);
-        }
-        container.innerHTML = html;
+    if (!rateLimited && results.length > 0) {
+        priceData = results;
+        renderStack();
     }
 
     isUpdating = false;
 }
 
+// ====================== STACK LOGIC ======================
+function renderStack() {
+    const wrapper = document.getElementById("stackWrapper");
+    const dotsContainer = document.getElementById("stackDots");
+    if (!wrapper || !priceData.length) return;
+
+    let html = "";
+    for (let i = 0; i < priceData.length; i++) {
+        html += createStackCardHTML(priceData[i], i);
+    }
+    wrapper.innerHTML = html;
+
+    // Dots
+    let dotsHtml = "";
+    for (let i = 0; i < priceData.length; i++) {
+        dotsHtml += '<div class="dot' + (i === currentStackIndex ? ' active' : '') + '" data-index="' + i + '"></div>';
+    }
+    dotsContainer.innerHTML = dotsHtml;
+
+    // Dot click
+    const dots = dotsContainer.querySelectorAll(".dot");
+    for (let i = 0; i < dots.length; i++) {
+        dots[i].addEventListener("click", function() {
+            currentStackIndex = parseInt(this.getAttribute("data-index"));
+            updateStackPositions();
+        });
+    }
+
+    updateStackPositions();
+    initSwipe();
+}
+
+function updateStackPositions() {
+    const cards = document.querySelectorAll(".stack-card");
+    const total = cards.length;
+
+    for (let i = 0; i < total; i++) {
+        const card = cards[i];
+        const offset = (i - currentStackIndex + total) % total;
+
+        if (offset === 0) {
+            // Active card
+            card.style.transform = "translateY(0) scale(1)";
+            card.style.opacity = "1";
+            card.style.zIndex = "10";
+            card.style.boxShadow = "0 20px 40px rgba(0,0,0,0.45)";
+        } else if (offset === 1) {
+            card.style.transform = "translateY(14px) scale(0.96)";
+            card.style.opacity = "0.7";
+            card.style.zIndex = "5";
+            card.style.boxShadow = "0 8px 20px rgba(0,0,0,0.3)";
+        } else if (offset === 2) {
+            card.style.transform = "translateY(26px) scale(0.92)";
+            card.style.opacity = "0.4";
+            card.style.zIndex = "3";
+            card.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+        } else {
+            card.style.transform = "translateY(36px) scale(0.88)";
+            card.style.opacity = "0";
+            card.style.zIndex = "1";
+        }
+    }
+
+    // Update dots
+    const dots = document.querySelectorAll(".dot");
+    for (let i = 0; i < dots.length; i++) {
+        if (i === currentStackIndex) {
+            dots[i].classList.add("active");
+        } else {
+            dots[i].classList.remove("active");
+        }
+    }
+}
+
+function initSwipe() {
+    const wrapper = document.getElementById("stackWrapper");
+    if (!wrapper) return;
+
+    // Touch events
+    wrapper.addEventListener("touchstart", onStart, { passive: true });
+    wrapper.addEventListener("touchmove", onMove, { passive: true });
+    wrapper.addEventListener("touchend", onEnd);
+
+    // Mouse events
+    wrapper.addEventListener("mousedown", onStart);
+    wrapper.addEventListener("mousemove", onMove);
+    wrapper.addEventListener("mouseup", onEnd);
+    wrapper.addEventListener("mouseleave", onEnd);
+}
+
+function onStart(e) {
+    isDragging = true;
+    startX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+    currentX = startX;
+}
+
+function onMove(e) {
+    if (!isDragging) return;
+    currentX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+}
+
+function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const diff = currentX - startX;
+    const threshold = 60;
+
+    if (diff < -threshold) {
+        // Swipe left → next
+        currentStackIndex = (currentStackIndex + 1) % priceData.length;
+        updateStackPositions();
+    } else if (diff > threshold) {
+        // Swipe right → previous
+        currentStackIndex = (currentStackIndex - 1 + priceData.length) % priceData.length;
+        updateStackPositions();
+    }
+}
+
 // ====================== INIT ======================
 document.addEventListener("DOMContentLoaded", function() {
     createWidget(currentSymbol, currentInterval);
-    updatePriceCards();
+    updatePrices();
 
-    setInterval(updatePriceCards, 80000);
+    setInterval(updatePrices, 80000);
 
     // Timeframe buttons
     const tfs = document.querySelectorAll(".tf");
@@ -169,7 +277,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Pair selector
+    // Pair selector (changes chart only)
     const pairSelect = document.getElementById("pairSelect");
     if (pairSelect) {
         pairSelect.addEventListener("change", function(e) {
@@ -195,10 +303,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 refreshBtn.style.transform = "rotate(0deg)";
             }, 600);
 
-            updatePriceCards();
+            updatePrices();
             createWidget(currentSymbol, currentInterval);
         });
     }
 
-    console.log("FX Dashboard ready");
+    console.log("FX Dashboard ready - Stack UI");
 });
