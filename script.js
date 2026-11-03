@@ -40,11 +40,11 @@ function createWidget(symbol, interval) {
     });
 }
 
-// ====================== PRICE CARDS ======================
+// ====================== HELPERS ======================
 function formatPrice(value, symbol) {
     if (value === null || value === undefined || isNaN(value)) return "-";
-    if (symbol.includes("XAU")) return Number(value).toFixed(2);
-    if (symbol.includes("JPY")) return Number(value).toFixed(3);
+    if (symbol.indexOf("XAU") !== -1) return Number(value).toFixed(2);
+    if (symbol.indexOf("JPY") !== -1) return Number(value).toFixed(3);
     return Number(value).toFixed(5);
 }
 
@@ -52,32 +52,30 @@ function createCardHTML(data) {
     const isUp = data.percent_change >= 0;
     const changeClass = isUp ? "up" : "down";
     const sign = isUp ? "+" : "";
+    const percent = Number(data.percent_change).toFixed(2);
 
-    return `
-        <div class="card price-card">
-            <div class="card-header">
-                <span class="pair-name">${data.name}</span>
-                <span class="badge \( {changeClass}"> \){sign}${Number(data.percent_change).toFixed(2)}%</span>
-            </div>
-            <div class="price">${formatPrice(data.close, data.symbol)}</div>
-            <div class="price-change ${changeClass}">
-                \( {sign} \){formatPrice(data.change, data.symbol)}
-            </div>
-            <div class="card-footer">
-                <span>High: ${formatPrice(data.high, data.symbol)}</span>
-                <span>Low: ${formatPrice(data.low, data.symbol)}</span>
-            </div>
-        </div>
-    `;
+    return '' +
+        '<div class="card price-card">' +
+            '<div class="card-header">' +
+                '<span class="pair-name">' + data.name + '</span>' +
+                '<span class="badge ' + changeClass + '">' + sign + percent + '%</span>' +
+            '</div>' +
+            '<div class="price">' + formatPrice(data.close, data.symbol) + '</div>' +
+            '<div class="price-change ' + changeClass + '">' + sign + formatPrice(data.change, data.symbol) + '</div>' +
+            '<div class="card-footer">' +
+                '<span>High: ' + formatPrice(data.high, data.symbol) + '</span>' +
+                '<span>Low: ' + formatPrice(data.low, data.symbol) + '</span>' +
+            '</div>' +
+        '</div>';
 }
 
 async function fetchPair(symbol) {
     try {
-        const url = `https://api.twelvedata.com/quote?symbol=\( {encodeURIComponent(symbol)}&apikey= \){API_KEY}`;
+        const url = "https://api.twelvedata.com/quote?symbol=" + encodeURIComponent(symbol) + "&apikey=" + API_KEY;
         const res = await fetch(url);
         const data = await res.json();
 
-        if (data.code === 429 || (data.message && data.message.toLowerCase().includes("limit"))) {
+        if (data.code === 429 || (data.message && data.message.toLowerCase().indexOf("limit") !== -1)) {
             return { error: "rate_limit" };
         }
 
@@ -111,12 +109,13 @@ async function updatePriceCards() {
         return;
     }
 
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:40px;">Loading live prices...</div>`;
+    container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:40px;">Loading live prices...</div>';
 
     const results = [];
     let rateLimited = false;
 
-    for (const pair of PAIRS) {
+    for (let i = 0; i < PAIRS.length; i++) {
+        const pair = PAIRS[i];
         const data = await fetchPair(pair.symbol);
 
         if (data && data.error === "rate_limit") {
@@ -129,51 +128,51 @@ async function updatePriceCards() {
             results.push(data);
         }
 
-        // Delay to stay under free limit
-        await new Promise(r => setTimeout(r, 1000));
+        // Wait 1.1 second between requests
+        await new Promise(function(resolve) {
+            setTimeout(resolve, 1100);
+        });
     }
 
     if (rateLimited) {
-        container.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align:center; color:#f59e0b; padding:40px;">
-                Rate limit reached (Free plan limit).<br>
-                Wait 1 minute then click the Refresh button.
-            </div>`;
+        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#f59e0b; padding:40px;">Rate limit reached.<br>Wait 1 minute then click Refresh.</div>';
     } else if (results.length === 0) {
-        container.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align:center; color:#f43f5e; padding:40px;">
-                Failed to load prices.<br>
-                Open browser console (F12) for details.
-            </div>`;
+        container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#f43f5e; padding:40px;">Failed to load prices.<br>Open Console (F12) for details.</div>';
     } else {
-        container.innerHTML = results.map(createCardHTML).join("");
+        let html = "";
+        for (let i = 0; i < results.length; i++) {
+            html += createCardHTML(results[i]);
+        }
+        container.innerHTML = html;
     }
 
     isUpdating = false;
 }
 
 // ====================== INIT ======================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function() {
     createWidget(currentSymbol, currentInterval);
     updatePriceCards();
 
-    // Auto refresh every 75 seconds
-    setInterval(updatePriceCards, 75000);
+    setInterval(updatePriceCards, 80000);
 
     // Timeframe buttons
-    document.querySelectorAll(".tf").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".tf").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentInterval = btn.getAttribute("data-interval");
+    const tfs = document.querySelectorAll(".tf");
+    for (let i = 0; i < tfs.length; i++) {
+        tfs[i].addEventListener("click", function() {
+            for (let j = 0; j < tfs.length; j++) {
+                tfs[j].classList.remove("active");
+            }
+            this.classList.add("active");
+            currentInterval = this.getAttribute("data-interval");
             createWidget(currentSymbol, currentInterval);
         });
-    });
+    }
 
     // Pair selector
     const pairSelect = document.getElementById("pairSelect");
     if (pairSelect) {
-        pairSelect.addEventListener("change", (e) => {
+        pairSelect.addEventListener("change", function(e) {
             const map = {
                 EURUSD: "FX:EURUSD",
                 GBPUSD: "FX:GBPUSD",
@@ -189,10 +188,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Refresh button
     const refreshBtn = document.getElementById("refreshBtn");
     if (refreshBtn) {
-        refreshBtn.addEventListener("click", () => {
+        refreshBtn.addEventListener("click", function() {
             refreshBtn.style.transform = "rotate(360deg)";
             refreshBtn.style.transition = "transform 0.6s ease";
-            setTimeout(() => {
+            setTimeout(function() {
                 refreshBtn.style.transform = "rotate(0deg)";
             }, 600);
 
