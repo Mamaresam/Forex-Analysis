@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FX Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,75 +11,27 @@
 </head>
 <body>
     <div class="app">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon">FX</div>
-                <span>Dashboard</span>
-            </div>
-
-            <nav class="nav">
-                <a href="#" class="nav-item active">
-                    <span class="nav-icon">📊</span>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">📈</span>
-                    <span>Charts</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">⭐</span>
-                    <span>Watchlist</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">🧮</span>
-                    <span>Calculator</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">📰</span>
-                    <span>News</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <span class="nav-icon">⚙️</span>
-                    <span>Settings</span>
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="status">
-                    <span class="status-dot"></span>
-                    <span>Market Open</span>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
         <main class="main">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1>Forex Dashboard</h1>
-                    <p class="subtitle">Real-time analysis & monitoring</p>
+            <!-- Top minimal bar -->
+            <div class="top-bar">
+                <div class="pair-selector">
+                    <select id="pairSelect">
+                        <option value="EURUSD">EUR/USD</option>
+                        <option value="GBPUSD">GBP/USD</option>
+                        <option value="USDJPY">USD/JPY</option>
+                        <option value="XAUUSD">XAU/USD</option>
+                        <option value="BTCUSD">BTC/USD</option>
+                    </select>
                 </div>
-                <div class="header-right">
-                    <div class="pair-selector">
-                        <select id="pairSelect">
-                            <option value="EURUSD">EUR/USD</option>
-                            <option value="GBPUSD">GBP/USD</option>
-                            <option value="USDJPY">USD/JPY</option>
-                            <option value="XAUUSD">XAU/USD</option>
-                            <option value="BTCUSD">BTC/USD</option>
-                        </select>
-                    </div>
-                    <button class="btn-icon" id="refreshBtn" title="Refresh">
-                        ↻
-                    </button>
-                </div>
-            </header>
+                <button class="btn-icon" id="refreshBtn" title="Refresh">↻</button>
+            </div>
 
-            <!-- Price Cards -->
-            <section class="cards-grid" id="priceCards">
-                <!-- Cards will be rendered by JavaScript -->
+            <!-- Stacked Price Cards -->
+            <section class="stack-section">
+                <div class="stack-wrapper" id="stackWrapper">
+                    <!-- Cards will be injected by JS -->
+                </div>
+                <div class="stack-dots" id="stackDots"></div>
             </section>
 
             <!-- Chart + Side Info -->
