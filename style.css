@@ -1,7 +1,7 @@
 :root {
     --bg-primary: #070b14;
-    --bg-card: rgba(16, 24, 40, 0.78);
-    --border: rgba(255, 255, 255, 0.07);
+    --bg-card: rgba(16, 24, 40, 0.82);
+    --border: rgba(255, 255, 255, 0.08);
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --accent: #22d3ee;
@@ -9,12 +9,12 @@
     --up: #10b981;
     --down: #f43f5e;
     --radius: 20px;
-    --shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    --shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
 
 body.light {
     --bg-primary: #f1f5f9;
-    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card: rgba(255, 255, 255, 0.9);
     --border: rgba(0, 0, 0, 0.08);
     --text-primary: #0f172a;
     --text-secondary: #64748b;
@@ -92,7 +92,7 @@ body {
     min-width: 120px;
 }
 
-/* Stack Section */
+/* Stack */
 .stack-section {
     margin-bottom: 40px;
     position: relative;
@@ -105,7 +105,7 @@ body {
     margin: 0 auto;
     touch-action: pan-y;
     user-select: none;
-    perspective: 1000px;
+    overflow: visible;
 }
 
 .stack-card {
@@ -120,11 +120,10 @@ body {
     padding: 26px 24px;
     backdrop-filter: blur(16px);
     box-shadow: var(--shadow);
-    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.45s ease,
-                filter 0.45s ease;
     cursor: grab;
-    will-change: transform, opacity, filter;
+    will-change: transform, opacity;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.4s ease;
 }
 
 .stack-card:active {
@@ -173,34 +172,13 @@ body {
 .up { color: var(--up); }
 .down { color: var(--down); }
 
-/* Exit / Enter animations */
-.stack-card.exit-left {
-    transform: translateX(-120%) scale(0.9) !important;
-    opacity: 0 !important;
-    filter: blur(8px);
-}
-
-.stack-card.exit-right {
-    transform: translateX(120%) scale(0.9) !important;
-    opacity: 0 !important;
-    filter: blur(8px);
-}
-
-.stack-card.enter {
-    animation: cardBorn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@keyframes cardBorn {
-    0% {
-        opacity: 0;
-        filter: blur(12px);
-        transform: scale(0.85) translateY(20px);
-    }
-    100% {
-        opacity: 1;
-        filter: blur(0);
-        transform: scale(1) translateY(0);
-    }
+/* Particles for disintegration */
+.particle {
+    position: absolute;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 100;
+    will-change: transform, opacity;
 }
 
 /* Dots */
@@ -297,7 +275,6 @@ body.light .chart-container {
     min-height: 400px;
 }
 
-/* Responsive */
 @media (max-width: 480px) {
     .main { padding: 16px 12px 40px; }
     .stack-wrapper { height: 210px; }
