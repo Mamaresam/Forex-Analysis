@@ -2,20 +2,22 @@
 const API_KEY = "53c0391297564e8b91d9bb170a0d002e";
 
 const PAIRS = [
-    { symbol: "EUR/USD", name: "EUR/USD", tv: "FX:EURUSD" },
-    { symbol: "GBP/USD", name: "GBP/USD", tv: "FX:GBPUSD" },
-    { symbol: "XAU/USD", name: "XAU/USD", tv: "OANDA:XAUUSD" },
-    { symbol: "USD/JPY", name: "USD/JPY", tv: "FX:USDJPY" }
+    { symbol: "EUR/USD", name: "EUR/USD" },
+    { symbol: "GBP/USD", name: "GBP/USD" },
+    { symbol: "XAU/USD", name: "XAU/USD" },
+    { symbol: "USD/JPY", name: "USD/JPY" }
 ];
 
 // ====================== STATE ======================
 let currentSymbol = "FX:EURUSD";
 let currentInterval = "60";
 let widget = null;
+let isUpdating = false;
 
 // ====================== TRADINGVIEW ======================
 function createWidget(symbol, interval) {
     const container = document.getElementById("tradingview_chart");
+    if (!container) return;
     container.innerHTML = "";
 
     widget = new TradingView.widget({
@@ -40,13 +42,9 @@ function createWidget(symbol, interval) {
 
 // ====================== PRICE CARDS ======================
 function formatPrice(value, symbol) {
-    if (!value && value !== 0) return "-";
-    if (symbol.includes("XAU") || symbol.includes("BTC")) {
-        return Number(value).toFixed(2);
-    }
-    if (symbol.includes("JPY")) {
-        return Number(value).toFixed(3);
-    }
+    if (value === null || value === undefined || isNaN(value)) return "-";
+    if (symbol.includes("XAU")) return Number(value).toFixed(2);
+    if (symbol.includes("JPY")) return Number(value).toFixed(3);
     return Number(value).toFixed(5);
 }
 
@@ -79,8 +77,14 @@ async function fetchPair(symbol) {
         const res = await fetch(url);
         const data = await res.json();
 
-        if (data.status === "error") {
-            console.warn("API Error:", data.message);
+        // Rate limit or error
+        if (data.code === 429 || (data.status === "error" && data.message && data.message.toLowerCase().includes("limit"))) {
+            console.warn("Rate limit hit");
+            return { error: "rate_limit" };
+        }
+
+        if (data.status === "error" || !data.close) {
+            console.warn("API Error for", symbol, data.message || data);
             return null;
         }
 
@@ -100,45 +104,63 @@ async function fetchPair(symbol) {
 }
 
 async function updatePriceCards() {
+    if (isUpdating) return;
+    isUpdating = true;
+
     const container = document.getElementById("priceCards");
-    if (!container) return;
+    if (!container) {
+        isUpdating = false;
+        return;
+    }
 
     container.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:40px;">Loading live prices...</div>`;
 
     const results = [];
+    let rateLimited = false;
 
     for (const pair of PAIRS) {
         const data = await fetchPair(pair.symbol);
+
+        if (data && data.error === "rate_limit") {
+            rateLimited = true;
+            break;
+        }
+
         if (data) {
             data.name = pair.name;
             results.push(data);
         }
-        // Delay to respect free rate limit
-        await new Promise(r => setTimeout(r, 400));
+
+        // Longer delay to stay under free limit (8 credits/min)
+        await new Promise(r => setTimeout(r, 900));
     }
 
-    if (results.length === 0) {
+    if (rateLimited) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align:center; color:#f59e0b; padding:40px;">
+                Rate limit reached (Free plan: 8 requests/min).<br>
+                Please wait 1 minute and click Refresh.
+            </div>`;
+    } else if (results.length === 0) {
         container.innerHTML = `
             <div style="grid-column: 1 / -1; text-align:center; color:#f43f5e; padding:40px;">
                 Failed to load prices.<br>
-                Check API Key or rate limit.
+                Check console for details.
             </div>`;
-        return;
+    } else {
+        container.innerHTML = results.map(createCardHTML).join("");
     }
 
-    container.innerHTML = results.map(createCardHTML).join("");
+    isUpdating = false;
 }
 
 // ====================== INIT ======================
 document.addEventListener("DOMContentLoaded", () => {
-    // Chart
     createWidget(currentSymbol, currentInterval);
-
-    // Live prices
     updatePriceCards();
 
-    // Auto refresh every 60 seconds
-    setInterval(updatePriceCards, 60000);
+    // Auto refresh every 70 seconds (safer for free plan)
+    setInterval(updatePriceCards, 70000);
 
     // Timeframe buttons
     document.querySelectorAll(".tf").forEach(btn => {
